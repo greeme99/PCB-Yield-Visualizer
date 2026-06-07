@@ -2,6 +2,10 @@
 
 레거시 단일 HTML `PCB_Count.html`을 기준으로 구성한 React + TypeScript 운영형 SPA입니다.
 
+## Live URL
+
+https://greeme99.github.io/PCB-Yield-Visualizer/
+
 ## 구성
 
 - React + TypeScript + Vite
