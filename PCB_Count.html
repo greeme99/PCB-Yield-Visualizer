@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Premium PCB Panel Yield Visualizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #05070a;
+      --card: rgba(45, 55, 72, 0.95);
+      --border: rgba(255, 255, 255, 0.3);
+      --text: #f0f2f5;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ff1a1a;
+      --glass: blur(12px) saturate(180%);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 16px 40px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: var(--glass);
+      background: rgba(5, 7, 10, 0.6);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 12px;
+      padding: 12px;
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      backdrop-filter: var(--glass);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 6px;
+    }
+
+    label {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    input,
+    select {
+      width: 100%;
+      background: #334155;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 5px 8px;
+      color: var(--text);
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    input:hover,
+    select:hover {
+      background: #475569;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      background: #1e293b;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .result-item {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .result-label {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .result-value {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .canvas-container {
+      position: relative;
+      background: #000;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      overflow: auto;
+      min-height: 750px;
+      cursor: grab;
+    }
+
+    .canvas-container:active {
+      cursor: grabbing;
+    }
+
+    .zoom-wrapper {
+      padding: 20px 300px 300px;
+      text-align: center;
+    }
+
+    canvas {
+      background: #000;
+      display: inline-block;
+      cursor: inherit;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .config-grid .full-width {
+      grid-column: span 2;
+    }
+
+    .btn-download {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 5px;
+    }
+
+    .zoom-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .zoom-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Simulation Table Styling */
+    .sim-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .sim-table th {
+      text-align: left;
+      color: var(--muted);
+      padding: 6px 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sim-table td {
+      padding: 8px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sim-table tr.current {
+      background: rgba(59, 130, 246, 0.15);
+      font-weight: 700;
+    }
+
+    .sim-table tr.current td {
+      color: var(--accent);
+    }
+
+    .sim-table tr:hover:not(.current) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .trend-up {
+      color: var(--success);
+    }
+
+    .trend-down {
+      color: var(--danger);
+    }
+
+    .sim-scroll {
+      max-height: 250px;
+      overflow-y: auto;
+      margin-right: -10px;
+      padding-right: 10px;
+    }
+
+    .sim-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sim-scroll::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>PCB Panel Yield Visualizer</h1>
+    <button class="btn-download" id="downloadBtn">이미지 저장 (PNG)</button>
+  </header>
+
+  <div class="main-container">
+    <aside class="sidebar">
+      <section class="card">
+        <div class="section-title">📏 규격 설정 (mm)</div>
+
+        <div class="config-grid">
+          <div class="input-group full-width">
+            <label>원판 규격 (Preset)</label>
+            <select id="panelPreset">
+              <option value="1000x1000" selected>1000X1000 (레귤러)</option>
+              <option value="1200x1000">1200X1000 (점보)</option>
+              <option value="custom">직접 입력 (아래 입력)</option>
+            </select>
+          </div>
+
+          <div class="input-group" id="panelWInput" style="display:none;">
+            <label>원판 W</label>
+            <input type="number" id="panelW" value="1000">
+          </div>
+          <div class="input-group" id="panelHInput" style="display:none;">
+            <label>원판 H</label>
+            <input type="number" id="panelH" value="1000">
+          </div>
+
+          <div class="input-group">
+            <label>제품 가로 (W)</label>
+            <input type="number" id="partW" value="245">
+          </div>
+          <div class="input-group">
+            <label>제품 세로 (H)</label>
+            <input type="number" id="partH" value="245">
+          </div>
+
+          <div class="input-group">
+            <label>외곽 로스</label>
+            <input type="number" id="borderLoss" value="5">
+          </div>
+          <div class="input-group">
+            <label>제품 간격</label>
+            <input type="number" id="gap" value="2">
+          </div>
+
+          <div class="input-group">
+            <label>회전 옵션</label>
+            <select id="rotateMode">
+              <option value="auto" selected>최적 수량 (자동)</option>
+              <option value="0">정방향 고정</option>
+              <option value="90">90도 회전 고정</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>배율 <span id="zoomVal">100%</span></label>
+            <div class="zoom-controls">
+              <input type="range" id="zoomRange" min="50" max="300" value="100" step="20">
+              <button class="zoom-btn" id="resetZoom">🔄</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">📊 분석 결과</div>
+        <div class="result-grid" id="resultBox"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">💡 최적화 사이즈 가이드</div>
+        <style>
+          .guide-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          }
+
+          .guide-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+          }
+
+          .guide-header {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+          }
+
+          .guide-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .guide-item {
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .guide-item .label {
+            color: var(--muted);
+            font-size: 11px;
+          }
+
+          .guide-item .value {
+            font-weight: 700;
+          }
+
+          .guide-item.plus {
+            color: var(--success);
+          }
+
+          .guide-item.minus {
+            color: var(--warning);
+          }
+
+          .tag {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            text-transform: uppercase;
+          }
+
+          .tag.up {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+          }
+
+          .tag.limit {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+          }
+        </style>
+        <div class="guide-container">
+          <div class="guide-box" id="guideW">
+            <div class="guide-header">가로(W) 조정 분석 <span id="currentWTag">0mm</span></div>
+            <div class="guide-row">
+              <div class="guide-item plus">
+                <span class="label"><span class="tag up">UP</span> 1줄 추가:</span>
+                <span class="value" id="targetWAdd">--</span>
+              </div>
+              <div class="guide-item minus">
+                <span class="label"><span class="tag limit">LIMIT</span> 수량 한계:</span>
+                <span class="value" id="targetWLimit">--</span>
+              </div>
+            </div>
+          </div>
+          <div class="guide-box" id="guideH">
+            <div class="guide-header">세로(H) 조정 분석 <span id="currentHTag">0mm</span></div>
+            <div class="guide-row">
+              <div class="guide-item plus">
+                <span class="label"><span class="tag up">UP</span> 1줄 추가:</span>
+                <span class="value" id="targetHAdd">--</span>
+              </div>
+              <div class="guide-item minus">
+                <span class="label"><span class="tag limit">LIMIT</span> 수량 한계:</span>
+                <span class="value" id="targetHLimit">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">🎨 범례</div>
+        <style>
+          .legend-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--muted);
+          }
+
+          .legend-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+        </style>
+        <div class="legend-grid">
+          <div class="legend-item">
+            <div class="legend-icon" style="background:#e8ecff"></div><span><b>흰색</b>: 원판 규격</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-icon" style="background:#004cff"></div><span><b>파란색</b>: PCB 사이즈</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-icon" style="background:#ef4444"></div><span><b>빨간색</b>: 외곽 로스 (금지구역)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-icon" style="background:#a855f7"></div><span><b>보라색</b>: 제품 GAP (간격)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-icon" style="background:#f59e0b"></div><span><b>주황색</b>: 남는 영역 (자투리)</span>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="canvas-container" id="canvasScrollBox">
+      <div class="zoom-wrapper">
+        <canvas id="c"></canvas>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const el = (id) => document.getElementById(id);
+      const canvas = el('c');
+      const scrollBox = el('canvasScrollBox');
+      const ctx = canvas.getContext('2d');
+
+      let currentMode = 'auto';
+      let mouseX = 0, mouseY = 0;
+      let currentZoom = 1.0;
+      let isPanning = false;
+      let isFirstRender = true;
+      let startX, startY, scrollLeftStart, scrollTopStart;
+
+      const config = {
+        panelW: el('panelW'), panelH: el('panelH'), partW: el('partW'), partH: el('partH'),
+        borderLoss: el('borderLoss'), gap: el('gap'), panelPreset: el('panelPreset'),
+        rotateMode: el('rotateMode'), resultBox: el('resultBox'),
+        zoomRange: el('zoomRange'), zoomVal: el('zoomVal'), resetZoom: el('resetZoom'),
+        targetWAdd: el('targetWAdd'), targetWLimit: el('targetWLimit'),
+        targetHAdd: el('targetHAdd'), targetHLimit: el('targetHLimit'),
+        currentWTag: el('currentWTag'), currentHTag: el('currentHTag')
+      };
+
+      function calculateYield(pW, pH, w, h, loss, gapValue, rot) {
+        const uw = Math.max(0, pW - 2 * loss);
+        const uh = Math.max(0, pH - 2 * loss);
+
+        const fit0 = {
+          cols: Math.floor((uw + gapValue) / (w + gapValue)),
+          rows: Math.floor((uh + gapValue) / (h + gapValue)),
+          w: w, h: h
+        };
+        fit0.count = Math.max(0, fit0.cols) * Math.max(0, fit0.rows);
+
+        const fit90 = {
+          cols: Math.floor((uw + gapValue) / (h + gapValue)),
+          rows: Math.floor((uh + gapValue) / (w + gapValue)),
+          w: h, h: w
+        };
+        fit90.count = Math.max(0, fit90.cols) * Math.max(0, fit90.rows);
+
+        let fit;
+        let isRotated = false;
+        if (rot === '90') {
+          fit = fit90;
+          isRotated = true;
+        } else if (rot === '0') {
+          fit = fit0;
+          isRotated = false;
+        } else {
+          if (fit90.count > fit0.count) {
+            fit = fit90;
+            isRotated = true;
+          } else {
+            fit = fit0;
+            isRotated = false;
+          }
+        }
+
+        const usedW = fit.cols > 0 ? fit.cols * fit.w + (fit.cols - 1) * gapValue : 0;
+        const usedH = fit.rows > 0 ? fit.rows * fit.h + (fit.rows - 1) * gapValue : 0;
+        const efficiency = ((fit.count * w * h) / (pW * pH) * 100).toFixed(1);
+
+        return { fit, usedW, usedH, efficiency, uw, uh, isRotated };
+      }
+
+      function getValues() {
+        return {
+          pW: Math.max(100, Number(config.panelW.value)),
+          pH: Math.max(100, Number(config.panelH.value)),
+          w: Math.max(10, Number(config.partW.value)),
+          h: Math.max(10, Number(config.partH.value)),
+          loss: Number(config.borderLoss.value),
+          gapValue: Number(config.gap.value),
+          rot: config.rotateMode.value
+        };
+      }
+
+      function setupCanvas(pW, pH) {
+        const dpr = window.devicePixelRatio || 1;
+        const padding = 300;
+        const baseScale = Math.max(0.1, Math.min((1200 - padding) / pW, (800 - padding) / pH));
+        const scale = baseScale * currentZoom;
+
+        canvas.width = (pW * scale + padding) * dpr;
+        canvas.height = (pH * scale + padding) * dpr;
+        canvas.style.width = (pW * scale + padding) + 'px';
+        canvas.style.height = (pH * scale + padding) + 'px';
+        ctx.scale(dpr, dpr);
+        return { scale, offset: padding / 2 };
+      }
+
+      function drawDim(x1, y1, x2, y2, dist, label, color = '#94a3b8', isVertical = false) {
+        ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5;
+        ctx.font = '800 13px Inter, -apple-system, sans-serif'; ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const dx = x2 - x1, dy = y2 - y1;
+        const ang = Math.atan2(dy, dx), perpAng = ang - Math.PI / 2;
+        const lx1 = Math.round(x1 + Math.cos(perpAng) * dist);
+        const ly1 = Math.round(y1 + Math.sin(perpAng) * dist);
+        const lx2 = Math.round(x2 + Math.cos(perpAng) * dist);
+        const ly2 = Math.round(y2 + Math.sin(perpAng) * dist);
+
+        ctx.beginPath(); ctx.setLineDash([3, 3]);
+        ctx.moveTo(x1, y1); ctx.lineTo(lx1, ly1);
+        ctx.moveTo(x2, y2); ctx.lineTo(lx2, ly2);
+        ctx.stroke(); ctx.setLineDash([]);
+
+        const totalDist = Math.sqrt(dx * dx + dy * dy);
+        const textWidth = ctx.measureText(label).width;
+        const gapWidth = (textWidth / 2) + 10;
+
+        if (totalDist > gapWidth * 2.2) {
+          ctx.beginPath(); ctx.moveTo(lx1, ly1);
+          ctx.lineTo(lx1 + Math.cos(ang) * (totalDist / 2 - gapWidth), ly1 + Math.sin(ang) * (totalDist / 2 - gapWidth));
+          ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(lx1 + Math.cos(ang) * (totalDist / 2 + gapWidth), ly1 + Math.sin(ang) * (totalDist / 2 + gapWidth));
+          ctx.lineTo(lx2, ly2); ctx.stroke();
+        } else {
+          ctx.beginPath(); ctx.moveTo(lx1, ly1); ctx.lineTo(lx2, ly2); ctx.stroke();
+        }
+
+        const head = 6;
+        const headDraw = (x, y, a) => {
+          ctx.beginPath(); ctx.moveTo(x, y);
+          ctx.lineTo(x - head * Math.cos(a - Math.PI / 6), y - head * Math.sin(a - Math.PI / 6));
+          ctx.lineTo(x - head * Math.cos(a + Math.PI / 6), y - head * Math.sin(a + Math.PI / 6));
+          ctx.fill();
+        };
+        headDraw(lx1, ly1, ang + Math.PI); headDraw(lx2, ly2, ang);
+
+        const mx = Math.round((lx1 + lx2) / 2), my = Math.round((ly1 + ly2) / 2);
+        ctx.save(); ctx.translate(mx, my);
+        if (isVertical) ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+        ctx.fillRect(Math.round(-textWidth / 2 - 8), -12, Math.round(textWidth + 16), 24);
+        ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 0.6;
+        ctx.fillText(label, 0, 0); ctx.strokeText(label, 0, 0);
+        ctx.restore(); ctx.restore();
+      }
+
+      function render() {
+        const v = getValues();
+        const { scale, offset } = setupCanvas(v.pW, v.pH);
+        const { pW, pH, w, h, loss, gapValue, rot } = v;
+
+        const { fit, usedW, usedH, efficiency, uw, uh } = calculateYield(pW, pH, w, h, loss, gapValue, rot);
+
+        config.resultBox.innerHTML = `
+      <div class="result-item"><div class="result-label">총 수량</div><div class="result-value" style="color:var(--success)">${fit.count} PCS</div></div>
+      <div class="result-item"><div class="result-label">원판 수율</div><div class="result-value">${efficiency}%</div></div>
+      <div class="result-item"><div class="result-label">배열</div><div class="result-value">${fit.cols} × ${fit.rows}</div></div>
+      <div class="result-item"><div class="result-label">남은 가로/세로</div><div class="result-value" style="font-size:11px">${Math.round(uw - usedW)}mm / ${Math.round(uh - usedH)}mm</div></div>
+    `;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const px = offset, py = offset;
+
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(px, py, pW * scale, pH * scale);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.strokeRect(px, py, pW * scale, pH * scale);
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.55)';
+        ctx.fillRect(px, py, pW * scale, loss * scale);
+        ctx.fillRect(px, py + (pH - loss) * scale, pW * scale, loss * scale);
+        ctx.fillRect(px, py + loss * scale, loss * scale, (pH - 2 * loss) * scale);
+        ctx.fillRect(px + (pW - loss) * scale, py + loss * scale, loss * scale, (pH - 2 * loss) * scale);
+
+        const ux = px + loss * scale, uy = py + loss * scale;
+
+        drawDim(px, py, px + pW * scale, py, 110, `${pW}`, '#e8ecff');
+        drawDim(px, py, px, py + pH * scale, -120, `${pH}`, '#e8ecff', true);
+
+        if (loss > 0) {
+          drawDim(px, py, px + loss * scale, py, 55, `${loss}`, '#ef4444');
+          drawDim(px + (pW - loss) * scale, py, px + pW * scale, py, 55, `${loss}`, '#ef4444');
+          drawDim(px + pW * scale, py, px + pW * scale, py + loss * scale, 55, `${loss}`, '#ef4444', true);
+          drawDim(px, py + (pH - loss) * scale, px, py + pH * scale, -55, `${loss}`, '#ef4444', true);
+        }
+
+        if (gapValue > 0) {
+          if (fit.cols > 1) {
+            const gx1 = ux + fit.w * scale, gx2 = ux + (fit.w + gapValue) * scale;
+            drawDim(gx1, py, gx2, py, 80, `${gapValue}`, '#a855f7');
+          }
+          if (fit.rows > 1) {
+            const gy1 = uy + fit.h * scale, gy2 = uy + (fit.h + gapValue) * scale;
+            drawDim(px, gy1, px, gy2, -85, `${gapValue}`, '#a855f7', true);
+          }
+        }
+
+        if (currentMode === 'auto') {
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.5)'; ctx.strokeStyle = 'rgba(16, 185, 129, 0.9)';
+          for (let r = 0; r < fit.rows; r++) {
+            for (let c = 0; c < fit.cols; c++) {
+              const bX = ux + c * (fit.w + gapValue) * scale, bY = uy + r * (fit.h + gapValue) * scale;
+              ctx.fillRect(bX, bY, fit.w * scale, fit.h * scale);
+              ctx.strokeRect(bX, bY, fit.w * scale, fit.h * scale);
+            }
+          }
+          if (fit.count > 0) {
+            const bX0 = ux, bY0 = uy;
+            drawDim(bX0, bY0 + fit.h * scale, bX0 + fit.w * scale, bY0 + fit.h * scale, 30, `${fit.w}`, '#004cff');
+            drawDim(bX0 + fit.w * scale, bY0, bX0 + fit.w * scale, bY0 + fit.h * scale, 35, `${fit.h}`, '#004cff', true);
+            const remW = uw - usedW;
+            if (remW > 0.1) drawDim(ux + usedW * scale, py + pH * scale, px + pW * scale - loss * scale, py + pH * scale, -55, `${Math.round(remW)}`, '#f59e0b');
+            const remH = uh - usedH;
+            if (remH > 0.1) drawDim(px + pW * scale, uy + usedH * scale, px + pW * scale, py + pH * scale - loss * scale, 55, `${Math.round(remH)}`, '#f59e0b', true);
+          }
+        } else {
+          const mX = (mouseX - px) / scale, mY = (mouseY - py) / scale;
+          const inBounds = (mX >= loss && mX + fit.w <= pW - loss && mY >= loss && mY + fit.h <= pH - loss);
+          ctx.fillStyle = inBounds ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)';
+          const rx = px + mX * scale, ry = py + mY * scale;
+          ctx.fillRect(rx, ry, fit.w * scale, fit.h * scale); ctx.strokeRect(rx, ry, fit.w * scale, fit.h * scale);
+          drawDim(px, ry + (fit.h * scale) / 2, rx, ry + (fit.h * scale) / 2, 20, `${Math.round(mX)}`);
+          drawDim(rx + fit.w * scale, ry + (fit.h * scale) / 2, px + pW * scale, ry + (fit.h * scale) / 2, 20, `${Math.round(pW - mX - fit.w)}`);
+        }
+        if (isFirstRender) {
+          const centerView = () => {
+            scrollBox.scrollLeft = (scrollBox.scrollWidth - scrollBox.clientWidth) / 2;
+            scrollBox.scrollTop = 0;
+          };
+          requestAnimationFrame(centerView);
+          isFirstRender = false;
+        }
+
+        updateSimulation();
+      }
+
+      function updateSimulation() {
+        const v = getValues();
+        const currentRes = calculateYield(v.pW, v.pH, v.w, v.h, v.loss, v.gapValue, v.rot);
+        const baseCount = currentRes.fit.count;
+
+        config.currentWTag.innerText = `${v.w}mm`;
+        config.currentHTag.innerText = `${v.h}mm`;
+
+        // 가로(W) 분석
+        let wAdd = null, wLimit = null;
+        for (let d = 1; d <= 100; d++) {
+          if (wAdd === null) {
+            const res = calculateYield(v.pW, v.pH, v.w - d, v.h, v.loss, v.gapValue, v.rot);
+            if (res.fit.count > baseCount) wAdd = { mm: -d, val: v.w - d, count: res.fit.count };
+          }
+          if (wLimit === null) {
+            const res = calculateYield(v.pW, v.pH, v.w + d, v.h, v.loss, v.gapValue, v.rot);
+            if (res.fit.count < baseCount) wLimit = { mm: d - 1, val: v.w + d - 1 };
+          }
+          if (wAdd && wLimit) break;
+        }
+
+        // 세로(H) 분석
+        let hAdd = null, hLimit = null;
+        for (let d = 1; d <= 100; d++) {
+          if (hAdd === null) {
+            const res = calculateYield(v.pW, v.pH, v.w, v.h - d, v.loss, v.gapValue, v.rot);
+            if (res.fit.count > baseCount) hAdd = { mm: -d, val: v.h - d, count: res.fit.count };
+          }
+          if (hLimit === null) {
+            const res = calculateYield(v.pW, v.pH, v.w, v.h + d, v.loss, v.gapValue, v.rot);
+            if (res.fit.count < baseCount) hLimit = { mm: d - 1, val: v.h + d - 1 };
+          }
+          if (hAdd && hLimit) break;
+        }
+
+        const renderInfo = (el, info, isAdd) => {
+          if (!info) { el.innerText = '범위 외'; return; }
+          const diff = info.mm;
+          const sign = diff > 0 ? '+' : '';
+          el.innerHTML = `<b>${info.val}mm</b> <span style="font-size:10px; color:var(--muted)">(${sign}${diff}mm)</span>`;
+        };
+
+        renderInfo(config.targetWAdd, wAdd, true);
+        renderInfo(config.targetWLimit, wLimit, false);
+        renderInfo(config.targetHAdd, hAdd, true);
+        renderInfo(config.targetHLimit, hLimit, false);
+      }
+
+      function handleZoom(newZoom, mouseXInViewport, mouseYInViewport) {
+        // 1. 현재 스크롤 상태와 마우스 위치 저장 (비율 기반)
+        const scrollWidthBefore = scrollBox.scrollWidth;
+        const scrollHeightBefore = scrollBox.scrollHeight;
+        if (scrollWidthBefore === 0 || scrollHeightBefore === 0) return;
+
+        const worldX = mouseXInViewport + scrollBox.scrollLeft;
+        const worldY = mouseYInViewport + scrollBox.scrollTop;
+
+        const relX = worldX / scrollWidthBefore;
+        const relY = worldY / scrollHeightBefore;
+
+        // 2. 새로운 배율 적용 및 다시 그리기 (캔버스 크기 변경됨)
+        currentZoom = newZoom;
+        render();
+
+        // 3. 변경된 크기에 맞춰 스크롤 위치 복원
+        const scrollWidthAfter = scrollBox.scrollWidth;
+        const scrollHeightAfter = scrollBox.scrollHeight;
+
+        scrollBox.scrollLeft = relX * scrollWidthAfter - mouseXInViewport;
+        scrollBox.scrollTop = relY * scrollHeightAfter - mouseYInViewport;
+      }
+
+      config.zoomRange.addEventListener('input', () => {
+        const rect = scrollBox.getBoundingClientRect();
+        handleZoom(config.zoomRange.value / 100, rect.width / 2, rect.height / 2);
+        config.zoomVal.innerText = `${config.zoomRange.value}%`;
+      });
+
+      config.resetZoom.addEventListener('click', () => {
+        currentZoom = 1.0; config.zoomRange.value = 100; config.zoomVal.innerText = '100%';
+        render();
+      });
+
+      scrollBox.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const oldZoom = Number(config.zoomRange.value);
+        const newZoom = e.deltaY < 0 ? Math.min(300, oldZoom + 20) : Math.max(50, oldZoom - 20);
+
+        if (oldZoom !== newZoom) {
+          const rect = scrollBox.getBoundingClientRect();
+          handleZoom(newZoom / 100, e.clientX - rect.left, e.clientY - rect.top);
+          config.zoomRange.value = newZoom;
+          config.zoomVal.innerText = `${newZoom}%`;
+        }
+      }, { passive: false });
+
+      // Pan (Drag) logic
+      scrollBox.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Left click only
+        isPanning = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        scrollLeftStart = scrollBox.scrollLeft;
+        scrollTopStart = scrollBox.scrollTop;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        e.preventDefault();
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        scrollBox.scrollLeft = scrollLeftStart - dx;
+        scrollBox.scrollTop = scrollTopStart - dy;
+      });
+
+      window.addEventListener('mouseup', () => {
+        isPanning = false;
+      });
+
+      // Event Listeners
+      config.panelPreset.addEventListener('change', () => {
+        if (config.panelPreset.value === 'custom') {
+          el('panelWInput').style.display = 'block';
+          el('panelHInput').style.display = 'block';
+        } else {
+          el('panelWInput').style.display = 'none';
+          el('panelHInput').style.display = 'none';
+          const [w, h] = config.panelPreset.value.split('x').map(Number);
+          config.panelW.value = w; config.panelH.value = h;
+        }
+        render();
+      });
+
+      [config.panelW, config.panelH, config.partW, config.partH, config.borderLoss, config.gap, config.rotateMode].forEach(i => i.addEventListener('input', render));
+
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        mouseX = (e.clientX - rect.left) * (canvas.width / rect.width) / dpr;
+        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) / dpr;
+        if (currentMode === 'manual') render();
+      });
+
+      el('downloadBtn').addEventListener('click', () => {
+        const link = document.createElement('a'); link.download = `PCB_Layout.png`;
+        link.href = canvas.toDataURL(); link.click();
+      });
+
+      window.addEventListener('resize', render);
+      render();
+    })();
+  </script>
+</body>
+
+</html>
