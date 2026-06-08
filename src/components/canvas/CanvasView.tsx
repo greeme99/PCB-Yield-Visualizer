@@ -1,13 +1,14 @@
 import { Maximize2, Minus, Move, Plus, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { renderLayout } from './canvasRenderer';
-import type { PanelConfig, PlacementMode, YieldResult } from '../../features/yield-calc/types';
+import type { PanelConfig, PlacementMode, ThemeMode, YieldResult } from '../../features/yield-calc/types';
 
 interface Props {
   config: PanelConfig;
   result: YieldResult;
   zoom: number;
   placementMode: PlacementMode;
+  theme: ThemeMode;
   mousePoint: { x: number; y: number };
   onZoomChange: (zoom: number) => void;
   onPlacementModeChange: (mode: PlacementMode) => void;

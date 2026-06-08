@@ -61,14 +61,15 @@ export function App() {
           />
           <ResultSummary config={config} result={result} />
           <OptimizationGuidePanel guide={guide} config={config} onApply={setConfig} />
-          <HistoryPresetPanel history={history} presets={presets} onApply={applyConfig} />
           <Legend />
+          <HistoryPresetPanel history={history} presets={presets} onApply={applyConfig} />
         </aside>
         <CanvasView
           config={config}
           result={result}
           zoom={zoom}
           placementMode={placementMode}
+          theme={theme}
           mousePoint={mousePoint}
           onZoomChange={setZoom}
           onPlacementModeChange={setPlacementMode}
