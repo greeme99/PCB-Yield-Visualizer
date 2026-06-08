@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { rotateLabel } from '../../features/yield-calc/calculate';
+import { formatLength } from '../../features/yield-calc/units';
 import type { PanelConfig, YieldResult } from '../../features/yield-calc/types';
 
 interface ResultSummaryProps {
@@ -15,6 +16,7 @@ const statusCopy = {
 
 export function ResultSummary({ config, result }: ResultSummaryProps) {
   const StatusIcon = statusCopy[result.status].icon;
+  const hasOverflow = result.overflowW > 0 || result.overflowH > 0;
   return (
     <section className="panel">
       <h2 className="section-title">분석 결과</h2>
@@ -40,12 +42,17 @@ export function ResultSummary({ config, result }: ResultSummaryProps) {
           <div className="result-value">{result.fit.cols} x {result.fit.rows}</div>
         </div>
         <div className="result-card full">
-          <div className="result-label">남은 가로/세로</div>
-          <div className="result-value">{Math.round(result.remainingW)}mm / {Math.round(result.remainingH)}mm</div>
+          <div className="result-label">{hasOverflow ? '초과 가로/세로' : '남은 가로/세로'}</div>
+          <div className="result-value">
+            {hasOverflow
+              ? `${formatLength(result.overflowW, config.unit)} / ${formatLength(result.overflowH, config.unit)}`
+              : `${formatLength(result.remainingW, config.unit)} / ${formatLength(result.remainingH, config.unit)}`}
+          </div>
         </div>
       </div>
       <div className="placeholder mt-3 muted">
-        {rotateLabel(config.rotateMode, result.isRotated)} · 유효영역 {Math.round(result.effectiveW)} x {Math.round(result.effectiveH)}mm
+        {rotateLabel(config.rotateMode, result.isRotated)} · 유효영역 {formatLength(result.effectiveW, config.unit)} x {formatLength(result.effectiveH, config.unit)}
+        {hasOverflow ? ' · 수동 배열이 유효영역을 초과합니다' : ''}
       </div>
     </section>
   );

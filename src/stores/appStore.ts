@@ -62,8 +62,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ config: DEFAULT_CONFIG, zoom: 1 });
   },
   addHistory: () => {
-    const { config, history } = get();
-    const result = calculateYield(config);
+    const { config, history, placementMode } = get();
+    const result = calculateYield(config, placementMode);
     const next = [{
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),

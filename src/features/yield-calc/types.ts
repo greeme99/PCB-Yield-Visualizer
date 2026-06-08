@@ -12,6 +12,8 @@ export interface PanelConfig {
   partH: number;
   borderLoss: number;
   gap: number;
+  manualCols: number;
+  manualRows: number;
   rotateMode: RotateMode;
   unit: UnitMode;
 }
@@ -30,6 +32,8 @@ export interface YieldResult {
   usedH: number;
   remainingW: number;
   remainingH: number;
+  overflowW: number;
+  overflowH: number;
   effectiveW: number;
   effectiveH: number;
   efficiency: number;

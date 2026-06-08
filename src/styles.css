@@ -230,6 +230,12 @@ button, input, select {
   color: #fff;
 }
 
+.stable-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+
 .result-card,
 .guide-card,
 .message,

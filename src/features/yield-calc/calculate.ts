@@ -1,4 +1,4 @@
-import type { OptimizationGuide, PanelConfig, RotateMode, YieldResult } from './types';
+import type { OptimizationGuide, PanelConfig, PlacementMode, RotateMode, YieldResult } from './types';
 
 export const DEFAULT_CONFIG: PanelConfig = {
   panelPreset: '1000x1000',
@@ -8,6 +8,8 @@ export const DEFAULT_CONFIG: PanelConfig = {
   partH: 245,
   borderLoss: 5,
   gap: 2,
+  manualCols: 4,
+  manualRows: 4,
   rotateMode: 'auto',
   unit: 'mm'
 };
@@ -18,36 +20,70 @@ function fitOne(effectiveW: number, effectiveH: number, partW: number, partH: nu
   return { cols, rows, count: cols * rows, partW, partH };
 }
 
-export function calculateYield(config: PanelConfig): YieldResult {
-  const { panelW, panelH, partW, partH, borderLoss, gap, rotateMode } = config;
+function manualFit(cols: number, rows: number, partW: number, partH: number) {
+  const safeCols = Math.max(0, Math.floor(cols));
+  const safeRows = Math.max(0, Math.floor(rows));
+  return { cols: safeCols, rows: safeRows, count: safeCols * safeRows, partW, partH };
+}
+
+function chooseAutoFit(config: PanelConfig, effectiveW: number, effectiveH: number) {
+  const normal = fitOne(effectiveW, effectiveH, config.partW, config.partH, config.gap);
+  const rotated = fitOne(effectiveW, effectiveH, config.partH, config.partW, config.gap);
+  if (config.rotateMode === '90' || (config.rotateMode === 'auto' && rotated.count > normal.count)) {
+    return { fit: rotated, isRotated: true };
+  }
+  return { fit: normal, isRotated: false };
+}
+
+function chooseManualFit(config: PanelConfig, effectiveW: number, effectiveH: number) {
+  const normal = manualFit(config.manualCols, config.manualRows, config.partW, config.partH);
+  const rotated = manualFit(config.manualCols, config.manualRows, config.partH, config.partW);
+  if (config.rotateMode === '90') return { fit: rotated, isRotated: true };
+  if (config.rotateMode === '0') return { fit: normal, isRotated: false };
+
+  const normalUsedW = usedLength(normal.cols, normal.partW, config.gap);
+  const normalUsedH = usedLength(normal.rows, normal.partH, config.gap);
+  const rotatedUsedW = usedLength(rotated.cols, rotated.partW, config.gap);
+  const rotatedUsedH = usedLength(rotated.rows, rotated.partH, config.gap);
+  const normalOverflow = Math.max(0, normalUsedW - effectiveW) + Math.max(0, normalUsedH - effectiveH);
+  const rotatedOverflow = Math.max(0, rotatedUsedW - effectiveW) + Math.max(0, rotatedUsedH - effectiveH);
+  return rotatedOverflow < normalOverflow ? { fit: rotated, isRotated: true } : { fit: normal, isRotated: false };
+}
+
+function usedLength(count: number, partLength: number, gap: number) {
+  return count > 0 ? count * partLength + (count - 1) * gap : 0;
+}
+
+export function calculateYield(config: PanelConfig, placementMode: PlacementMode = 'auto'): YieldResult {
+  const { panelW, panelH, partW, partH, borderLoss, gap } = config;
   const effectiveW = Math.max(0, panelW - 2 * borderLoss);
   const effectiveH = Math.max(0, panelH - 2 * borderLoss);
-  const normal = fitOne(effectiveW, effectiveH, partW, partH, gap);
-  const rotated = fitOne(effectiveW, effectiveH, partH, partW, gap);
+  const { fit, isRotated } = placementMode === 'manual'
+    ? chooseManualFit(config, effectiveW, effectiveH)
+    : chooseAutoFit(config, effectiveW, effectiveH);
 
-  let fit = normal;
-  let isRotated = false;
-  if (rotateMode === '90' || (rotateMode === 'auto' && rotated.count > normal.count)) {
-    fit = rotated;
-    isRotated = true;
-  }
-
-  const usedW = fit.cols > 0 ? fit.cols * fit.partW + (fit.cols - 1) * gap : 0;
-  const usedH = fit.rows > 0 ? fit.rows * fit.partH + (fit.rows - 1) * gap : 0;
+  const usedW = usedLength(fit.cols, fit.partW, gap);
+  const usedH = usedLength(fit.rows, fit.partH, gap);
   const remainingW = Math.max(0, effectiveW - usedW);
   const remainingH = Math.max(0, effectiveH - usedH);
+  const overflowW = Math.max(0, usedW - effectiveW);
+  const overflowH = Math.max(0, usedH - effectiveH);
   const efficiency = panelW > 0 && panelH > 0 ? (fit.count * partW * partH) / (panelW * panelH) * 100 : 0;
   const processEfficiency = effectiveW > 0 && effectiveH > 0
     ? (fit.count * partW * partH) / (effectiveW * effectiveH) * 100
     : 0;
 
-  const status = fit.count === 0 || effectiveW <= 0 || effectiveH <= 0 ? 'impossible' : efficiency > 90 ? 'warning' : 'ok';
+  const status = fit.count === 0 || effectiveW <= 0 || effectiveH <= 0 || overflowW > 0 || overflowH > 0
+    ? 'impossible'
+    : efficiency > 90 ? 'warning' : 'ok';
   return {
     fit,
     usedW,
     usedH,
     remainingW,
     remainingH,
+    overflowW,
+    overflowH,
     effectiveW,
     effectiveH,
     efficiency,

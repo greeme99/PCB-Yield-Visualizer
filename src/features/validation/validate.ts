@@ -26,6 +26,12 @@ export function validateConfig(config: PanelConfig): ValidationIssue[] {
   if (!Number.isFinite(config.gap) || config.gap < 0) {
     issues.push({ field: 'gap', severity: 'error', message: '제품 간격은 0 이상이어야 합니다.' });
   }
+  if (!Number.isFinite(config.manualCols) || config.manualCols < 0) {
+    issues.push({ field: 'manualCols', severity: 'error', message: '수동 가로 수량은 0 이상이어야 합니다.' });
+  }
+  if (!Number.isFinite(config.manualRows) || config.manualRows < 0) {
+    issues.push({ field: 'manualRows', severity: 'error', message: '수동 세로 수량은 0 이상이어야 합니다.' });
+  }
   if (config.panelW - 2 * config.borderLoss <= 0 || config.panelH - 2 * config.borderLoss <= 0) {
     issues.push({ field: 'layout', severity: 'error', message: '외곽 로스가 너무 커서 유효 작업영역이 없습니다.' });
   }

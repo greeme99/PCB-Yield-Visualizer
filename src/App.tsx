@@ -32,7 +32,7 @@ export function App() {
     applyConfig
   } = useAppStore();
 
-  const result = useMemo(() => calculateYield(config), [config]);
+  const result = useMemo(() => calculateYield(config, placementMode), [config, placementMode]);
   const guide = useMemo(() => calculateOptimizationGuide(config), [config]);
   const issues = useMemo(() => validateConfig(config), [config]);
 
@@ -54,7 +54,9 @@ export function App() {
             config={config}
             issues={issues}
             zoom={zoom}
+            placementMode={placementMode}
             onChange={setConfig}
+            onPlacementModeChange={setPlacementMode}
             onZoomChange={setZoom}
             onReset={resetConfig}
             onSavePreset={savePreset}

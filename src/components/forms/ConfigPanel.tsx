@@ -1,27 +1,84 @@
 import { RotateCcw, Save } from 'lucide-react';
-import type { PanelConfig } from '../../features/yield-calc/types';
+import { displayPrecision, fromDisplayLength, inputStep, toDisplayLength } from '../../features/yield-calc/units';
+import type { PanelConfig, PlacementMode } from '../../features/yield-calc/types';
 import type { ValidationIssue } from '../../features/validation/validate';
 
 interface ConfigPanelProps {
   config: PanelConfig;
   issues: ValidationIssue[];
   zoom: number;
+  placementMode: PlacementMode;
   onChange: (patch: Partial<PanelConfig>) => void;
+  onPlacementModeChange: (mode: PlacementMode) => void;
   onZoomChange: (zoom: number) => void;
   onReset: () => void;
   onSavePreset: (name: string) => void;
 }
 
-function NumberField({ label, value, onChange, min = 0 }: { label: string; value: number; min?: number; onChange: (value: number) => void }) {
+function LengthField({
+  label,
+  valueMm,
+  minMm = 0,
+  unit,
+  onChange
+}: {
+  label: string;
+  valueMm: number;
+  minMm?: number;
+  unit: PanelConfig['unit'];
+  onChange: (valueMm: number) => void;
+}) {
+  const precision = displayPrecision(unit);
+  const displayValue = toDisplayLength(valueMm, unit).toFixed(precision);
   return (
     <div className="field">
       <label>{label}</label>
-      <input className="input" type="number" min={min} value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <input
+        className="input"
+        type="number"
+        min={toDisplayLength(minMm, unit)}
+        step={inputStep(unit)}
+        value={displayValue}
+        onChange={(event) => {
+          const value = Number(event.target.value);
+          if (Number.isFinite(value)) onChange(fromDisplayLength(value, unit));
+        }}
+      />
     </div>
   );
 }
 
-export function ConfigPanel({ config, issues, zoom, onChange, onZoomChange, onReset, onSavePreset }: ConfigPanelProps) {
+function CountField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      <input
+        className="input"
+        type="number"
+        min={0}
+        step={1}
+        value={value}
+        onChange={(event) => {
+          const value = Number(event.target.value);
+          if (Number.isFinite(value)) onChange(Math.max(0, Math.floor(value)));
+        }}
+      />
+    </div>
+  );
+}
+
+export function ConfigPanel({
+  config,
+  issues,
+  zoom,
+  placementMode,
+  onChange,
+  onPlacementModeChange,
+  onZoomChange,
+  onReset,
+  onSavePreset
+}: ConfigPanelProps) {
+  const unitLabel = config.unit === 'inch' ? 'inch' : 'mm';
   return (
     <section className="panel">
       <h2 className="section-title">규격 설정</h2>
@@ -36,14 +93,14 @@ export function ConfigPanel({ config, issues, zoom, onChange, onZoomChange, onRe
         </div>
         {config.panelPreset === 'custom' && (
           <>
-            <NumberField label="원판 W (mm)" min={100} value={config.panelW} onChange={(panelW) => onChange({ panelW })} />
-            <NumberField label="원판 H (mm)" min={100} value={config.panelH} onChange={(panelH) => onChange({ panelH })} />
+            <LengthField label={`원판 W (${unitLabel})`} minMm={100} unit={config.unit} valueMm={config.panelW} onChange={(panelW) => onChange({ panelW })} />
+            <LengthField label={`원판 H (${unitLabel})`} minMm={100} unit={config.unit} valueMm={config.panelH} onChange={(panelH) => onChange({ panelH })} />
           </>
         )}
-        <NumberField label="제품 W (mm)" min={10} value={config.partW} onChange={(partW) => onChange({ partW })} />
-        <NumberField label="제품 H (mm)" min={10} value={config.partH} onChange={(partH) => onChange({ partH })} />
-        <NumberField label="외곽 로스 (mm)" value={config.borderLoss} onChange={(borderLoss) => onChange({ borderLoss })} />
-        <NumberField label="제품 GAP (mm)" value={config.gap} onChange={(gap) => onChange({ gap })} />
+        <LengthField label={`제품 W (${unitLabel})`} minMm={10} unit={config.unit} valueMm={config.partW} onChange={(partW) => onChange({ partW })} />
+        <LengthField label={`제품 H (${unitLabel})`} minMm={10} unit={config.unit} valueMm={config.partH} onChange={(partH) => onChange({ partH })} />
+        <LengthField label={`외곽 로스 (${unitLabel})`} unit={config.unit} valueMm={config.borderLoss} onChange={(borderLoss) => onChange({ borderLoss })} />
+        <LengthField label={`제품 GAP (${unitLabel})`} unit={config.unit} valueMm={config.gap} onChange={(gap) => onChange({ gap })} />
         <div className="field">
           <label>회전 옵션</label>
           <select className="select" value={config.rotateMode} onChange={(event) => onChange({ rotateMode: event.target.value as PanelConfig['rotateMode'] })}>
@@ -56,9 +113,22 @@ export function ConfigPanel({ config, issues, zoom, onChange, onZoomChange, onRe
           <label>단위</label>
           <select className="select" value={config.unit} onChange={(event) => onChange({ unit: event.target.value as PanelConfig['unit'] })}>
             <option value="mm">mm</option>
-            <option value="inch">inch (표시 확장 예정)</option>
+            <option value="inch">inch</option>
           </select>
         </div>
+        <div className="field full">
+          <label>배열 방식</label>
+          <div className="segmented stable-segmented">
+            <button className={`button ${placementMode === 'auto' ? 'active' : ''}`} onClick={() => onPlacementModeChange('auto')}>자동 최적</button>
+            <button className={`button ${placementMode === 'manual' ? 'active' : ''}`} onClick={() => onPlacementModeChange('manual')}>수동 고정</button>
+          </div>
+        </div>
+        {placementMode === 'manual' && (
+          <>
+            <CountField label="수동 가로 수량" value={config.manualCols} onChange={(manualCols) => onChange({ manualCols })} />
+            <CountField label="수동 세로 수량" value={config.manualRows} onChange={(manualRows) => onChange({ manualRows })} />
+          </>
+        )}
         <div className="field full">
           <label>배율 {Math.round(zoom * 100)}%</label>
           <input className="input" type="range" min={50} max={300} step={10} value={zoom * 100} onChange={(event) => onZoomChange(Number(event.target.value) / 100)} />

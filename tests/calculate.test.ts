@@ -26,6 +26,24 @@ describe('calculateYield', () => {
     expect(result.status).toBe('impossible');
     expect(result.fit.count).toBe(0);
   });
+
+  it('uses fixed columns and rows in manual placement mode', () => {
+    const result = calculateYield({ ...DEFAULT_CONFIG, manualCols: 3, manualRows: 2 }, 'manual');
+
+    expect(result.fit.cols).toBe(3);
+    expect(result.fit.rows).toBe(2);
+    expect(result.fit.count).toBe(6);
+    expect(result.remainingW).toBe(251);
+    expect(result.remainingH).toBe(498);
+  });
+
+  it('marks manual placement impossible when the fixed array exceeds the effective area', () => {
+    const result = calculateYield({ ...DEFAULT_CONFIG, manualCols: 5, manualRows: 4 }, 'manual');
+
+    expect(result.status).toBe('impossible');
+    expect(result.fit.count).toBe(20);
+    expect(result.overflowW).toBe(243);
+  });
 });
 
 describe('calculateOptimizationGuide', () => {

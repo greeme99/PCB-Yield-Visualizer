@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit -p tsconfig.app.json && vite build && cp PCB_Yield_Analyzer.html dist/PCB_Yield_Analyzer.html",
+    "build": "tsc --noEmit -p tsconfig.app.json && vite build && node scripts/build-standalone.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0"

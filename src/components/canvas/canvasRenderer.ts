@@ -1,4 +1,5 @@
 import type { PanelConfig, PlacementMode, ThemeMode, YieldResult } from '../../features/yield-calc/types';
+import { formatLength } from '../../features/yield-calc/units';
 
 export interface RenderOptions {
   canvas: HTMLCanvasElement;
@@ -168,6 +169,7 @@ export function renderLayout({ canvas, config, result, zoom, placementMode, mous
   const panelW = config.panelW * scale;
   const panelH = config.panelH * scale;
   const isDark = theme === 'dark';
+  const hasOverflow = result.overflowW > 0 || result.overflowH > 0;
   const labelBackground = isDark ? '#000' : 'rgba(255,255,255,0.92)';
   ctx.fillStyle = isDark ? '#000' : '#f8fafc';
   ctx.fillRect(0, 0, cssW, cssH);
@@ -191,63 +193,71 @@ export function renderLayout({ canvas, config, result, zoom, placementMode, mous
   const ux = px + loss;
   const uy = py + loss;
   if (isDark) {
-    drawArrowDimension(ctx, px, py - 48, px + panelW, py - 48, `${config.panelW}`, '#e5e7eb');
-    drawArrowDimension(ctx, px - 78, py, px - 78, py + panelH, `${config.panelH}`, '#e5e7eb', true);
+    drawArrowDimension(ctx, px, py - 48, px + panelW, py - 48, formatLength(config.panelW, config.unit, { compact: true }), '#e5e7eb');
+    drawArrowDimension(ctx, px - 78, py, px - 78, py + panelH, formatLength(config.panelH, config.unit, { compact: true }), '#e5e7eb', true);
     if (config.borderLoss > 0) {
-      drawDottedGuide(ctx, px, uy, ux, uy, `${config.borderLoss}`, '#ff2f2f');
-      drawDottedGuide(ctx, px + panelW - loss, uy, px + panelW, uy, `${config.borderLoss}`, '#ff2f2f');
-      drawDottedGuide(ctx, ux, py, ux, uy, `${config.borderLoss}`, '#ff2f2f', true);
-      drawDottedGuide(ctx, px + panelW, uy, px + panelW, py + loss, `${config.borderLoss}`, '#ff2f2f', true);
-      drawDottedGuide(ctx, ux, py + panelH - loss, ux, py + panelH, `${config.borderLoss}`, '#ff2f2f', true);
+      const lossLabel = formatLength(config.borderLoss, config.unit, { compact: true });
+      drawDottedGuide(ctx, px, uy, ux, uy, lossLabel, '#ff2f2f');
+      drawDottedGuide(ctx, px + panelW - loss, uy, px + panelW, uy, lossLabel, '#ff2f2f');
+      drawDottedGuide(ctx, ux, py, ux, uy, lossLabel, '#ff2f2f', true);
+      drawDottedGuide(ctx, px + panelW, uy, px + panelW, py + loss, lossLabel, '#ff2f2f', true);
+      drawDottedGuide(ctx, ux, py + panelH - loss, ux, py + panelH, lossLabel, '#ff2f2f', true);
     }
   } else {
-    drawDimension(ctx, px, py, px + panelW, py, 72, `${config.panelW}mm`, '#334155');
-    drawDimension(ctx, px, py, px, py + panelH, -84, `${config.panelH}mm`, '#334155', true);
+    drawDimension(ctx, px, py, px + panelW, py, 72, formatLength(config.panelW, config.unit), '#334155');
+    drawDimension(ctx, px, py, px, py + panelH, -84, formatLength(config.panelH, config.unit), '#334155', true);
   }
 
-  if (placementMode === 'auto') {
-    ctx.fillStyle = isDark ? 'rgba(18, 113, 88, 0.95)' : 'rgba(37, 99, 235, 0.78)';
-    ctx.strokeStyle = isDark ? 'rgba(45, 179, 145, 0.95)' : 'rgba(30, 64, 175, 0.9)';
-    for (let row = 0; row < result.fit.rows; row += 1) {
-      for (let col = 0; col < result.fit.cols; col += 1) {
-        const x = ux + col * (result.fit.partW + config.gap) * scale;
-        const y = uy + row * (result.fit.partH + config.gap) * scale;
-        ctx.fillRect(x, y, result.fit.partW * scale, result.fit.partH * scale);
-        ctx.strokeRect(x, y, result.fit.partW * scale, result.fit.partH * scale);
-      }
+  ctx.fillStyle = hasOverflow
+    ? 'rgba(220, 38, 38, 0.72)'
+    : isDark ? 'rgba(18, 113, 88, 0.95)' : 'rgba(37, 99, 235, 0.78)';
+  ctx.strokeStyle = hasOverflow
+    ? '#b91c1c'
+    : isDark ? 'rgba(45, 179, 145, 0.95)' : 'rgba(30, 64, 175, 0.9)';
+  for (let row = 0; row < result.fit.rows; row += 1) {
+    for (let col = 0; col < result.fit.cols; col += 1) {
+      const x = ux + col * (result.fit.partW + config.gap) * scale;
+      const y = uy + row * (result.fit.partH + config.gap) * scale;
+      ctx.fillRect(x, y, result.fit.partW * scale, result.fit.partH * scale);
+      ctx.strokeRect(x, y, result.fit.partW * scale, result.fit.partH * scale);
     }
-  } else {
+  }
+
+  if (placementMode === 'manual') {
     const mX = (mousePoint.x - ux) / scale;
     const mY = (mousePoint.y - uy) / scale;
     const ok = mX >= 0 && mY >= 0 && mX + result.fit.partW <= result.effectiveW && mY + result.fit.partH <= result.effectiveH;
-    ctx.fillStyle = ok ? 'rgba(22, 163, 74, 0.72)' : 'rgba(220, 38, 38, 0.72)';
+    ctx.fillStyle = ok ? 'rgba(22, 163, 74, 0.2)' : 'rgba(220, 38, 38, 0.2)';
     ctx.strokeStyle = ok ? '#15803d' : '#b91c1c';
+    ctx.setLineDash([6, 4]);
     ctx.fillRect(mousePoint.x, mousePoint.y, result.fit.partW * scale, result.fit.partH * scale);
     ctx.strokeRect(mousePoint.x, mousePoint.y, result.fit.partW * scale, result.fit.partH * scale);
+    ctx.setLineDash([]);
   }
 
   if (result.fit.count > 0) {
-    drawDimension(ctx, ux, uy + result.fit.partH * scale, ux + result.fit.partW * scale, uy + result.fit.partH * scale, 34, `${result.fit.partW}`, '#004cff', false, labelBackground);
-    drawDimension(ctx, ux + result.fit.partW * scale, uy, ux + result.fit.partW * scale, uy + result.fit.partH * scale, 40, `${result.fit.partH}`, '#004cff', true, labelBackground);
+    drawDimension(ctx, ux, uy + result.fit.partH * scale, ux + result.fit.partW * scale, uy + result.fit.partH * scale, 34, formatLength(result.fit.partW, config.unit, { compact: true }), '#004cff', false, labelBackground);
+    drawDimension(ctx, ux + result.fit.partW * scale, uy, ux + result.fit.partW * scale, uy + result.fit.partH * scale, 40, formatLength(result.fit.partH, config.unit, { compact: true }), '#004cff', true, labelBackground);
     if (config.gap > 0 && result.fit.cols > 1) {
-      drawDimension(ctx, ux + result.fit.partW * scale, py, ux + (result.fit.partW + config.gap) * scale, py, 44, `${config.gap}`, '#a855f7', false, labelBackground);
+      const gapLabel = formatLength(config.gap, config.unit, { compact: true });
+      drawDimension(ctx, ux + result.fit.partW * scale, py, ux + (result.fit.partW + config.gap) * scale, py, 44, gapLabel, '#a855f7', false, labelBackground);
       if (isDark) {
-        drawDottedGuide(ctx, ux + result.fit.partW * scale, uy, ux + (result.fit.partW + config.gap) * scale, uy, `${config.gap}`, '#a855f7');
-        drawDottedGuide(ctx, ux, uy + result.fit.partH * scale, ux, uy + (result.fit.partH + config.gap) * scale, `${config.gap}`, '#a855f7', true);
+        drawDottedGuide(ctx, ux + result.fit.partW * scale, uy, ux + (result.fit.partW + config.gap) * scale, uy, gapLabel, '#a855f7');
+        drawDottedGuide(ctx, ux, uy + result.fit.partH * scale, ux, uy + (result.fit.partH + config.gap) * scale, gapLabel, '#a855f7', true);
       }
     }
     if (result.remainingW > 0.1) {
       if (isDark) {
-        drawDottedGuide(ctx, ux + result.usedW * scale, py + panelH, px + panelW - loss, py + panelH, `${Math.round(result.remainingW)}`, '#f59e0b');
+        drawDottedGuide(ctx, ux + result.usedW * scale, py + panelH, px + panelW - loss, py + panelH, formatLength(result.remainingW, config.unit, { compact: true }), '#f59e0b');
       } else {
-        drawDimension(ctx, ux + result.usedW * scale, py + panelH, px + panelW - loss, py + panelH, -48, `${Math.round(result.remainingW)}mm`, '#b45309');
+        drawDimension(ctx, ux + result.usedW * scale, py + panelH, px + panelW - loss, py + panelH, -48, formatLength(result.remainingW, config.unit), '#b45309');
       }
     }
     if (result.remainingH > 0.1) {
       if (isDark) {
-        drawDottedGuide(ctx, px + panelW - loss, uy + result.usedH * scale, px + panelW - loss, py + panelH - loss, `${Math.round(result.remainingH)}`, '#f59e0b', true);
+        drawDottedGuide(ctx, px + panelW - loss, uy + result.usedH * scale, px + panelW - loss, py + panelH - loss, formatLength(result.remainingH, config.unit, { compact: true }), '#f59e0b', true);
       } else {
-        drawDimension(ctx, px + panelW, uy + result.usedH * scale, px + panelW, py + panelH - loss, 48, `${Math.round(result.remainingH)}mm`, '#b45309', true);
+        drawDimension(ctx, px + panelW, uy + result.usedH * scale, px + panelW, py + panelH - loss, 48, formatLength(result.remainingH, config.unit), '#b45309', true);
       }
     }
   }

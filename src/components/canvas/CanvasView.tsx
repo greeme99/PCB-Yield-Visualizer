@@ -1,6 +1,7 @@
 import { Maximize2, Minus, Move, Plus, RotateCcw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { renderLayout } from './canvasRenderer';
+import { formatLength } from '../../features/yield-calc/units';
 import type { PanelConfig, PlacementMode, ThemeMode, YieldResult } from '../../features/yield-calc/types';
 
 interface Props {
@@ -26,7 +27,7 @@ export function CanvasView(props: Props) {
     if (!canvasRef.current) return;
     renderLayout({ canvas: canvasRef.current, ...props });
     props.onCanvasReady(canvasRef.current);
-  }, [props.config, props.result, props.zoom, props.placementMode, props.mousePoint]);
+  }, [props.config, props.result, props.zoom, props.placementMode, props.mousePoint, props.theme]);
 
   const fitView = () => {
     props.onZoomChange(1);
@@ -87,6 +88,7 @@ export function CanvasView(props: Props) {
       <div className="statusbar">
         <span>Zoom {Math.round(props.zoom * 100)}%</span>
         <span>좌표 {Math.round(props.mousePoint.x)}, {Math.round(props.mousePoint.y)}</span>
+        <span>{props.result.fit.cols} x {props.result.fit.rows} · {formatLength(props.result.usedW, props.config.unit)} x {formatLength(props.result.usedH, props.config.unit)}</span>
         <span>{props.result.isRotated ? '90도 적용' : '정방향 적용'}</span>
       </div>
     </section>

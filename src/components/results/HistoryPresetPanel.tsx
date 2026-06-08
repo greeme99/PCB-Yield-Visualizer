@@ -1,3 +1,4 @@
+import { formatLength } from '../../features/yield-calc/units';
 import type { PanelConfig } from '../../features/yield-calc/types';
 import type { SavedPreset, SavedRun } from '../../features/persistence/storage';
 
@@ -18,13 +19,21 @@ export function HistoryPresetPanel({ history, presets, onApply }: Props) {
         {presets.map((preset) => (
           <button className="history-row" key={preset.id} onClick={() => onApply(preset.config)}>
             <strong>{preset.name}</strong>
-            <div className="muted">{preset.config.panelW}x{preset.config.panelH} · {preset.config.partW}x{preset.config.partH}mm</div>
+            <div className="muted">
+              {formatLength(preset.config.panelW, preset.config.unit)} x {formatLength(preset.config.panelH, preset.config.unit)}
+              {' · '}
+              {formatLength(preset.config.partW, preset.config.unit)} x {formatLength(preset.config.partH, preset.config.unit)}
+            </div>
           </button>
         ))}
         {history.map((item) => (
           <button className="history-row" key={item.id} onClick={() => onApply(item.config)}>
             <strong>{item.count} PCS · {item.efficiency.toFixed(1)}%</strong>
-            <div className="muted">{new Date(item.createdAt).toLocaleTimeString()} · {item.config.partW}x{item.config.partH}mm</div>
+            <div className="muted">
+              {new Date(item.createdAt).toLocaleTimeString()}
+              {' · '}
+              {formatLength(item.config.partW, item.config.unit)} x {formatLength(item.config.partH, item.config.unit)}
+            </div>
           </button>
         ))}
       </div>
